@@ -26,6 +26,9 @@ export interface Employee {
   dateOfJoining: string;
   gender: string | null;
   status: string;
+  departmentId?: string;
+  designationId?: string;
+  managerId?: string;
   department: { id: string; name: string };
   designation: { id: string; name: string };
   manager: { id: string; firstName: string; lastName: string } | null;
