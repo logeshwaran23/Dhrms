@@ -4,7 +4,7 @@ import type { Employee } from '../../types';
 import { useAuthStore } from '../../store/authStore';
 
 interface EmployeeListItem extends Employee {
-  user?: { role: { name: string } };
+  user?: { role: { id: string; name: string } };
 }
 
 interface PaginatedResult {
