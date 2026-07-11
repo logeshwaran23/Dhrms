@@ -32,7 +32,7 @@ export interface Employee {
   department: { id: string; name: string };
   designation: { id: string; name: string };
   manager: { id: string; firstName: string; lastName: string } | null;
-  user?: { role: { name: string } };
+  user?: { role: { id: string; name: string } };
 }
 
 export interface LeaveBalance {
