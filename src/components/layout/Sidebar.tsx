@@ -20,7 +20,7 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen }: { collapsed: boolean; onToggle: () => void; mobileOpen?: boolean }) {
   const { user, hasPermission, hasAnyPermission } = useAuthStore();
   const location = useLocation();
 
@@ -83,7 +83,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     .filter((section) => section.items.length > 0);
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="sidebar-brand">
         <div className="sidebar-brand-logo">D</div>
         <div className="sidebar-brand-text">
