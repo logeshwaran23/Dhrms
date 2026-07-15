@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../../store/authStore';
 import api from '../../lib/api';
-import type { LeaveBalance, LeaveRequest } from '../../types';
+import type { LeaveBalance } from '../../types';
 
 export default function LeaveApplyPage() {
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
@@ -23,17 +22,72 @@ export default function LeaveApplyPage() {
     api.get('/leave/balance').then(res => setBalances(res.data.data));
   }, []);
 
+  // Auto-dismiss messages after 5 seconds
+  useEffect(() => {
+    if (message || error) {
+      const timer = setTimeout(() => { setMessage(''); setError(''); }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message, error]);
+
+  // Today's date string for min attribute (prevent past dates)
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // When half-day is selected, force endDate to match startDate
+  useEffect(() => {
+    if (durationType === 'HALF_DAY' && startDate) {
+      setEndDate(startDate);
+    }
+  }, [durationType, startDate]);
+
+  // When startDate changes, ensure endDate is not before startDate
+  useEffect(() => {
+    if (startDate && endDate && endDate < startDate) {
+      setEndDate(startDate);
+    }
+  }, [startDate]);
+
   const calculatedDays = (() => {
     if (!startDate || !endDate) return '0 days';
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const diff = Math.max(0, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    return durationType === 'HALF_DAY' ? `${diff * 0.5} days` : `${diff} days`;
+
+    // Count only weekdays (Mon-Fri)
+    let count = 0;
+    const current = new Date(start);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) { // Skip Sat(6) and Sun(0)
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (durationType === 'HALF_DAY') {
+      return count > 0 ? '0.5 days' : '0 days';
+    }
+    return `${count} day${count !== 1 ? 's' : ''}`;
   })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(''); setError(''); setLoading(true);
+    setMessage(''); setError('');
+
+    // Client-side validation
+    if (!startDate || !endDate) {
+      setError('Please select both start and end dates');
+      return;
+    }
+    if (endDate < startDate) {
+      setError('End date cannot be before start date');
+      return;
+    }
+    if (startDate < todayStr) {
+      setError('Cannot apply for leave on past dates');
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await api.post('/leave/apply', { leaveTypeId, startDate, endDate, durationType, reason });
       setMessage(res.data.message);
@@ -91,16 +145,33 @@ export default function LeaveApplyPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Start Date</label>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    min={todayStr}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">End Date</label>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    min={startDate || todayStr}
+                    disabled={durationType === 'HALF_DAY'}
+                    required
+                  />
+                  {durationType === 'HALF_DAY' && (
+                    <div className="form-hint">End date is auto-set for half-day leave</div>
+                  )}
                 </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Calculated Days</label>
                 <input type="text" value={calculatedDays} readOnly style={{ background: 'var(--bg-secondary)' }} />
+                <div className="form-hint">Weekends (Sat/Sun) are excluded</div>
               </div>
               <div className="form-group">
                 <label className="form-label">Reason</label>

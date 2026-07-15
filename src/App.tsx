@@ -23,6 +23,7 @@ import SettingsPage from './features/admin/SettingsPage';
 import UsersPage from './features/admin/UsersPage';
 import LeaveSettingsPage from './features/admin/LeaveSettingsPage';
 import ForbiddenPage from './features/errors/ForbiddenPage';
+import NotFoundPage from './features/errors/NotFoundPage';
 import PerformancePage from './features/performance/PerformancePage';
 import RecruitmentPage from './features/recruitment/RecruitmentPage';
 
@@ -35,11 +36,11 @@ export default function App() {
       {/* Protected — wrapped in AppShell (sidebar + topbar) */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
-          {/* Main */}
+          {/* Main — all authenticated users */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
 
-          {/* Self Service */}
+          {/* Self Service — all authenticated users */}
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/leave/apply" element={<LeaveApplyPage />} />
           <Route path="/leave/requests" element={<LeaveRequestsPage />} />
@@ -49,32 +50,79 @@ export default function App() {
           <Route path="/helpdesk" element={<HelpdeskPage />} />
           <Route path="/performance" element={<PerformancePage />} />
 
-          {/* Management — permission-gated at component level */}
-          <Route path="/leave/approvals" element={<LeaveApprovalsPage />} />
-          <Route path="/attendance/manage" element={<TeamAttendancePage />} />
-          <Route path="/employees" element={<EmployeeDirectoryPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-
-          {/* HR & Payroll */}
-          <Route path="/payroll" element={<PayrollPage />} />
-          <Route path="/helpdesk/manage" element={<HelpdeskManagePage />} />
-          <Route path="/recruitment" element={<RecruitmentPage />} />
-
-          {/* Admin */}
-          <Route path="/admin/roles" element={<RolesPage />} />
-          <Route path="/admin/audit" element={<AuditLogsPage />} />
-          <Route path="/admin/settings" element={<SettingsPage />} />
-          <Route path="/admin/leave-settings" element={<LeaveSettingsPage />} />
-          <Route path="/admin/users" element={<UsersPage />} />
-
           {/* Error */}
           <Route path="/403" element={<ForbiddenPage />} />
         </Route>
       </Route>
 
+      {/* Management — permission-gated routes */}
+      <Route element={<ProtectedRoute requiredPermissions={['leave:approve:team', 'leave:approve:all']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/leave/approvals" element={<LeaveApprovalsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermissions={['attendance:read:team', 'attendance:read:all']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/attendance/manage" element={<TeamAttendancePage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermissions={['employee:read:all', 'employee:read:team']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/employees" element={<EmployeeDirectoryPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermissions={['reports:view:team', 'reports:view:all']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/reports" element={<ReportsPage />} />
+        </Route>
+      </Route>
+
+      {/* HR & Payroll — permission-gated */}
+      <Route element={<ProtectedRoute requiredPermissions={['payroll:generate']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/payroll" element={<PayrollPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermissions={['helpdesk:manage']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/helpdesk/manage" element={<HelpdeskManagePage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermissions={['employee:read:all']} />}>
+        <Route element={<AppShell />}>
+          <Route path="/recruitment" element={<RecruitmentPage />} />
+        </Route>
+      </Route>
+
+      {/* Admin — strictly permission-gated */}
+      <Route element={<ProtectedRoute requiredPermission="admin:manage_roles" />}>
+        <Route element={<AppShell />}>
+          <Route path="/admin/roles" element={<RolesPage />} />
+          <Route path="/admin/users" element={<UsersPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermission="audit:view" />}>
+        <Route element={<AppShell />}>
+          <Route path="/admin/audit" element={<AuditLogsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute requiredPermission="admin:settings" />}>
+        <Route element={<AppShell />}>
+          <Route path="/admin/settings" element={<SettingsPage />} />
+          <Route path="/admin/leave-settings" element={<LeaveSettingsPage />} />
+        </Route>
+      </Route>
+
       {/* Catch-all */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

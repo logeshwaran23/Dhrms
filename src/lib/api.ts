@@ -21,24 +21,32 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = useAuthStore.getState().refreshToken;
-        if (!refreshToken) throw new Error('No refresh token');
+      const refreshToken = useAuthStore.getState().refreshToken;
 
-        const response = await axios.post('/api/auth/refresh', { refreshToken });
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+      // If we have a refresh token, try to refresh
+      if (refreshToken) {
+        try {
+          const response = await axios.post('/api/auth/refresh', { refreshToken });
+          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
 
-        useAuthStore.getState().updateTokens(newAccessToken, newRefreshToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
-      } catch {
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
-        return Promise.reject(error);
+          useAuthStore.getState().updateTokens(newAccessToken, newRefreshToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return api(originalRequest);
+        } catch {
+          // Refresh failed — force re-login
+          useAuthStore.getState().logout();
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
       }
+
+      // No refresh token (e.g., page reload wiped in-memory tokens) — force re-login
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
@@ -46,3 +54,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+

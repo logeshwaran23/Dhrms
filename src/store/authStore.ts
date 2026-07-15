@@ -59,10 +59,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'hrms-auth',
+      // Security: Only persist user info, NOT tokens.
+      // Tokens stay in-memory only — prevents XSS-based token theft.
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     }

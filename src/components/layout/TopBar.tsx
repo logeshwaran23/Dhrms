@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { usePermission } from '../../hooks/usePermission';
 import api from '../../lib/api';
-import { Menu } from 'lucide-react';
+import { Menu, Bell, User, Settings, LogOut } from 'lucide-react';
 
 export default function TopBar({ onMenuToggle, isMobile }: { onMenuToggle?: () => void; isMobile?: boolean }) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, hasPermission } = useAuthStore();
+  const canAccessSettings = hasPermission('admin:settings');
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -42,7 +44,7 @@ export default function TopBar({ onMenuToggle, isMobile }: { onMenuToggle?: () =
 
   const initial = user?.employee?.firstName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U';
   const displayName = user?.employee?.name || user?.email || 'User';
-  const roleName = user?.role?.replace('_', ' ') || 'Employee';
+  const roleName = user?.role?.replaceAll('_', ' ') || 'Employee';
 
   return (
     <header className="topbar">
@@ -68,9 +70,9 @@ export default function TopBar({ onMenuToggle, isMobile }: { onMenuToggle?: () =
       </div>
 
       <div className="topbar-right">
-        <button className="topbar-icon-btn" title="Notifications">
-          🔔
-          <span className="badge"></span>
+        {/* Notification bell — placeholder, no fake badge */}
+        <button className="topbar-icon-btn" title="Notifications (coming soon)" aria-label="Notifications">
+          <Bell size={20} />
         </button>
 
         <div ref={dropdownRef}>
@@ -102,14 +104,16 @@ export default function TopBar({ onMenuToggle, isMobile }: { onMenuToggle?: () =
                 </>
               )}
               <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile'); }}>
-                👤 My Profile
+                <User size={16} /> My Profile
               </button>
-              <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/admin/settings'); }}>
-                ⚙️ Settings
-              </button>
+              {canAccessSettings && (
+                <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/admin/settings'); }}>
+                  <Settings size={16} /> Settings
+                </button>
+              )}
               <div className="dropdown-divider" />
               <button className="dropdown-item danger" onClick={handleLogout}>
-                🚪 Sign Out
+                <LogOut size={16} /> Sign Out
               </button>
             </div>
           )}

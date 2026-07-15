@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { Download, Trash2 } from 'lucide-react';
 
 interface DocItem {
   id: string;
@@ -36,6 +37,14 @@ export default function DocumentsPage() {
   const { user } = useAuthStore();
 
   useEffect(() => { loadDocuments(); }, []);
+
+  // Auto-dismiss messages
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const loadDocuments = async () => {
     try {
@@ -79,6 +88,32 @@ export default function DocumentsPage() {
       setMessage(err.response?.data?.message || 'Upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDownload = async (doc: DocItem) => {
+    try {
+      const res = await api.get(`/documents/${doc.id}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', doc.name);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch {
+      setMessage('Failed to download document');
+    }
+  };
+
+  const handleDelete = async (doc: DocItem) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    try {
+      await api.delete(`/documents/${doc.id}`);
+      setMessage('Document deleted successfully!');
+      await loadDocuments();
+    } catch {
+      setMessage('Failed to delete document');
     }
   };
 
@@ -131,7 +166,7 @@ export default function DocumentsPage() {
             <div className="form-group">
               <label className="form-label">Select File</label>
               <input type="file" ref={fileRef} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
-              <div className="form-hint">Accepted: PDF, JPG, PNG, DOC (max 5MB)</div>
+              <div className="form-hint">Accepted: PDF, JPG, PNG, DOC (max 10MB)</div>
             </div>
             <button className="btn btn-primary" onClick={handleUpload} disabled={uploading}>
               {uploading ? 'Uploading...' : '⬆️ Upload'}
@@ -163,6 +198,7 @@ export default function DocumentsPage() {
                   <th>Size</th>
                   <th>Status</th>
                   <th>Uploaded</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -178,6 +214,16 @@ export default function DocumentsPage() {
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       {new Date(doc.uploadedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                        <button className="btn btn-sm btn-ghost" title="Download" onClick={() => handleDownload(doc)}>
+                          <Download size={16} />
+                        </button>
+                        <button className="btn btn-sm btn-ghost" title="Delete" onClick={() => handleDelete(doc)} style={{ color: 'var(--error-600)' }}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

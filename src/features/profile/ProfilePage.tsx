@@ -6,23 +6,52 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>({});
+  const [originalForm, setOriginalForm] = useState<any>({});
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.get('/auth/me').then(r => { setProfile(r.data.user); setForm(r.data.user.employee || {}); });
+    api.get('/auth/me').then(r => {
+      setProfile(r.data.user);
+      const empData = r.data.user.employee || {};
+      setForm(empData);
+      setOriginalForm(empData);
+    });
   }, []);
+
+  // Auto-dismiss messages after 4 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const handleSave = async () => {
     try {
       await api.patch('/employees/profile', { phone: form.phone, address: form.address, city: form.city, state: form.state, pincode: form.pincode, emergencyContact: form.emergencyContact, emergencyPhone: form.emergencyPhone, bankName: form.bankName, bankAccount: form.bankAccount, ifscCode: form.ifscCode });
-      setMessage('Profile updated!'); setEditing(false);
+      setMessage('Profile updated successfully!');
+      setMessageType('success');
+      setEditing(false);
       api.get('/auth/me').then(r => {
         setProfile(r.data.user);
+        const empData = r.data.user.employee || {};
+        setForm(empData);
+        setOriginalForm(empData);
         useAuthStore.getState().updateUser(r.data.user);
       });
-    } catch { setMessage('Failed to update'); }
+    } catch {
+      setMessage('Failed to update profile');
+      setMessageType('error');
+    }
+  };
+
+  const handleCancel = () => {
+    setForm({ ...originalForm });
+    setEditing(false);
+    setMessage('');
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,16 +63,18 @@ export default function ProfilePage() {
 
     setIsUploading(true);
     try {
-      const res = await api.post('/employees/profile/avatar', formData, {
+      await api.post('/employees/profile/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setMessage('Profile photo updated!');
+      setMessageType('success');
       api.get('/auth/me').then(r => {
         setProfile(r.data.user);
         useAuthStore.getState().updateUser(r.data.user);
       });
     } catch {
       setMessage('Failed to upload photo');
+      setMessageType('error');
     } finally {
       setIsUploading(false);
     }
@@ -60,9 +91,16 @@ export default function ProfilePage() {
     <div>
       <div className="page-header-row">
         <div className="page-header"><h1>My Profile</h1><p>View and manage your personal information</p></div>
-        <button className={`btn ${editing ? 'btn-success' : 'btn-primary'}`} onClick={editing ? handleSave : () => setEditing(true)}>{editing ? 'Save Changes' : 'Edit Profile'}</button>
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          {editing && (
+            <button className="btn btn-secondary" onClick={handleCancel}>Cancel</button>
+          )}
+          <button className={`btn ${editing ? 'btn-success' : 'btn-primary'}`} onClick={editing ? handleSave : () => setEditing(true)}>
+            {editing ? 'Save Changes' : 'Edit Profile'}
+          </button>
+        </div>
       </div>
-      {message && <p className="success-message" style={{ marginBottom: 'var(--space-4)' }}>{message}</p>}
+      {message && <p className={messageType === 'success' ? 'success-message' : 'error-message'} style={{ marginBottom: 'var(--space-4)' }}>{message}</p>}
       <div className="two-col-grid">
         <div className="card"><div className="card-header"><div><div className="eyebrow">Personal</div><div className="card-header-title">Basic Information</div></div></div>
           <div className="card-body">
@@ -83,10 +121,6 @@ export default function ProfilePage() {
                 ) : (
                   emp?.firstName?.charAt(0)
                 )}
-                {/* Hover overlay hint (optional, but good UX) */}
-                <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'rgba(0,0,0,0.5)', width: '100%', textAlign: 'center', padding: '2px 0', fontSize: '10px', color: '#fff' }}>
-                  Edit
-                </div>
               </div>
               <input 
                 type="file" 

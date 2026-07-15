@@ -8,6 +8,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuthStore();
 
@@ -33,6 +37,23 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+    setResetMessage('');
+    setResetLoading(true);
+
+    try {
+      await api.post('/auth/forgot-password', { email: resetEmail });
+      setResetMessage('If an account with that email exists, password reset instructions have been sent to your HR administrator.');
+    } catch {
+      // Always show success to prevent email enumeration
+      setResetMessage('If an account with that email exists, password reset instructions have been sent to your HR administrator.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="login-page">
       <div className="login-hero">
@@ -47,45 +68,83 @@ export default function LoginPage() {
 
       <main className="login-panel">
         <div className="login-card">
-          <h2>Welcome back</h2>
-          <p className="login-subtitle">Sign in to your HRMS account</p>
+          {showForgotPassword ? (
+            <>
+              <h2>Reset Password</h2>
+              <p className="login-subtitle">Enter your email and we'll notify HR to reset your password</p>
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">Email Address</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@damodara.com"
-                required
-                autoFocus
-              />
-            </div>
+              <form onSubmit={handleForgotPassword}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="reset-email">Email Address</label>
+                  <input
+                    id="reset-email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="you@damodara.com"
+                    required
+                    autoFocus
+                  />
+                </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+                {resetMessage && <p className="success-message">{resetMessage}</p>}
 
-            {error && <p className="error-message">{error}</p>}
+                <button type="submit" className="btn btn-primary" disabled={resetLoading}>
+                  {resetLoading ? 'Sending...' : 'Request Password Reset'}
+                </button>
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
+                <div className="login-meta">
+                  <button type="button" onClick={() => { setShowForgotPassword(false); setResetMessage(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary-600)', fontWeight: 500, fontSize: '0.8rem', cursor: 'pointer' }}>
+                    ← Back to Sign In
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <h2>Welcome back</h2>
+              <p className="login-subtitle">Sign in to your HRMS account</p>
 
-            <div className="login-meta">
-              <a href="#">Forgot password?</a>
-            </div>
-          </form>
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="email">Email Address</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@damodara.com"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="password">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+
+                {error && <p className="error-message">{error}</p>}
+
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+
+                <div className="login-meta">
+                  <button type="button" onClick={() => setShowForgotPassword(true)} style={{ background: 'none', border: 'none', color: 'var(--primary-600)', fontWeight: 500, fontSize: '0.8rem', cursor: 'pointer' }}>
+                    Forgot password?
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       </main>
     </div>

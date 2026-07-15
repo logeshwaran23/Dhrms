@@ -4,7 +4,8 @@ import {
   LayoutDashboard, User, Clock, CalendarHeart, ClipboardList, 
   FileText, Banknote, FolderOpen, Ticket, Target, CheckSquare, 
   Users, Building2, TrendingUp, UserPlus, CreditCard, Wrench, 
-  ShieldCheck, UsersRound, ScrollText, CalendarRange, Settings
+  ShieldCheck, UsersRound, ScrollText, CalendarRange, Settings,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface MenuItem {
@@ -87,7 +88,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen }: { collapsed
       <div className="sidebar-brand">
         <div className="sidebar-brand-logo">D</div>
         <div className="sidebar-brand-text">
-          <div className="sidebar-brand-name">Damodara Smart Tec</div>
+          <div className="sidebar-brand-name">Damodara Smart Tech</div>
           <div className="sidebar-brand-subtitle">HRMS Portal</div>
         </div>
       </div>
@@ -100,6 +101,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen }: { collapsed
               <NavLink
                 key={item.path}
                 to={item.path}
+                title={collapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   `sidebar-link${isActive ? ' active' : ''}`
                 }
@@ -114,7 +116,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen }: { collapsed
       </nav>
 
       <button className="sidebar-toggle" onClick={onToggle}>
-        {collapsed ? '▶' : '◀'}
+        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
     </aside>
   );

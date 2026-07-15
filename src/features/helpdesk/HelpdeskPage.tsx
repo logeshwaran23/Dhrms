@@ -22,6 +22,15 @@ export default function HelpdeskPage() {
 
   useEffect(() => { loadTickets(); }, []);
 
+  // Auto-dismiss messages
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+
   const loadTickets = async () => {
     try {
       const res = await api.get('/helpdesk');
